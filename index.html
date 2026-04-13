@@ -1117,13 +1117,20 @@
 </script>
 
 <script>
-  // iframeの高さを親ページに通知
   function notifyHeight() {
-    var h = document.documentElement.scrollHeight;
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight
+    ) + 40;
     window.parent.postMessage({ iframeHeight: h }, '*');
   }
   window.addEventListener('load', notifyHeight);
   new ResizeObserver(notifyHeight).observe(document.body);
+  // 念のため遅延でも送信
+  setTimeout(notifyHeight, 500);
+  setTimeout(notifyHeight, 1500);
 </script>
 
 </body>
