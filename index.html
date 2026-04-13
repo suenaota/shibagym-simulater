@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ジム料金比較ツール</title>
+  <style>
+    /* ================================================================
+       STUDIO埋め込み用 — gym-comp- プレフィックスで干渉防止
+       カラー: shibajimu.jp (#7DE2FC → #B9B6E5 グラデーション)
+    ================================================================ */
+    .gym-comp-root *, .gym-comp-root *::before, .gym-comp-root *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+    }
+    .gym-comp-root {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Hiragino Sans',
+                   'Yu Gothic UI', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(160deg, #eaf7fd 0%, #ede9f8 100%);
+      color: #1a2035;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh; padding-bottom: 72px;
+    }
+
+    /* ── Header ── */
+    .gym-comp-header { text-align: center; padding: 48px 20px 32px; }
+    .gym-comp-eyebrow {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      letter-spacing: .16em; text-transform: uppercase;
+      background: linear-gradient(135deg, #7DE2FC, #B9B6E5);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 14px;
+    }
+    .gym-comp-h1 {
+      font-size: clamp(20px, 5vw, 28px); font-weight: 800;
+      letter-spacing: -.03em; line-height: 1.25; margin-bottom: 10px;
+      background: linear-gradient(135deg, #3aa8d8 0%, #8b80d0 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gym-comp-lead { font-size: 13px; color: #6b7588; line-height: 1.7; }
+
+    /* ── ツールバー ── */
+    .gym-comp-toolbar {
+      max-width: 820px; margin: 0 auto 12px; padding: 0 16px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .gym-comp-reset-btn {
+      background: rgba(255,255,255,.7); backdrop-filter: blur(8px);
+      border: 1.5px solid #cdd8ee; border-radius: 20px;
+      cursor: pointer; font-size: 11px; font-weight: 600; color: #6b7588;
+      padding: 6px 14px; transition: all .18s; white-space: nowrap;
+    }
+    .gym-comp-reset-btn:hover { background: #fff; color: #1a2035; border-color: #9ab0d8; box-shadow: 0 2px 8px rgba(100,130,200,.15); }
+    .gym-comp-own-show-btn {
+      background: linear-gradient(135deg,#7DE2FC22,#B9B6E522);
+      border: 1.5px solid #7ecce8; border-radius: 20px;
+      cursor: pointer; font-size: 11px; font-weight: 700; color: #2e8db8;
+      padding: 6px 14px; transition: all .18s; white-space: nowrap;
+    }
+    .gym-comp-own-show-btn:hover { background: linear-gradient(135deg,#7DE2FC44,#B9B6E544); }
+
+    /* ── Table Wrapper ── */
+    .gym-comp-table-outer { max-width: 820px; margin: 0 auto 16px; padding: 0 16px; }
+    .gym-comp-table-scroll {
+      background: #fff; border-radius: 20px;
+      box-shadow: 0 4px 32px rgba(90,130,200,.13), 0 1px 4px rgba(90,130,200,.07);
+      overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .gym-comp-table-scroll::-webkit-scrollbar { display: none; }
+    .gym-comp-table { width: 100%; border-collapse: collapse; }
+
+    /* ── 左列スティッキー ── */
+    .gym-comp-table th:first-child,
+    .gym-comp-table td:first-child {
+      position: sticky; left: 0; z-index: 2;
+      background: linear-gradient(180deg,#f4f7fc,#eef2fa);
+      border-right: 1px solid #e2e8f4;
+    }
+    .gym-comp-table thead th:first-child { z-index: 3; }
+
+    /* ── thead ── */
+    .gym-comp-table thead th { border-bottom: 1.5px solid #e8eef8; vertical-align: middle; }
+    .gym-comp-table thead th:first-child {
+      padding: 12px 8px; font-size: 10px; font-weight: 800; color: #8a96b0;
+      letter-spacing: .06em; text-align: center; line-height: 1.5;
+    }
+    .gym-comp-th-gym { padding: 10px 8px; min-width: 105px; text-align: center; }
+    .gym-comp-th-own { background: linear-gradient(160deg,#d8f3fe,#e8e4f8); }
+    .gym-comp-own-badge {
+      display: inline-block; font-size: 9px; font-weight: 800;
+      background: linear-gradient(135deg,#7DE2FC,#B9B6E5);
+      color: #fff; border-radius: 100px; padding: 2px 9px; margin-bottom: 4px;
+      letter-spacing: .05em;
+    }
+    .gym-comp-own-header-name { font-size: 14px; font-weight: 800; color: #2d7fb5; }
+    .gym-comp-gym-name { display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .gym-comp-gym-name-input {
+      width: 100%; border: 1.5px solid transparent; border-radius: 8px;
+      padding: 5px 6px; font-size: 13px; font-weight: 700; text-align: center;
+      background: transparent; outline: none; color: #1a2035; transition: all .15s;
+    }
+    .gym-comp-gym-name-input:focus { border-color: #7DCFF0; background: #fff; box-shadow: 0 0 0 3px rgba(125,210,240,.18); }
+    .gym-comp-gym-del {
+      flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
+      background: #fee2e2; color: #c62f2f; border: none; cursor: pointer;
+      font-size: 11px; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .gym-comp-gym-del:hover { background: #fecaca; }
+    .gym-comp-th-actions { padding: 6px 4px; min-width: 28px; width: 28px; text-align: center; background: linear-gradient(180deg,#f4f7fc,#eef2fa); }
+
+    /* しばジム列 非表示トグルボタン（thead内） */
+    .gym-comp-own-toggle {
+      display: block; margin: 5px auto 0;
+      background: rgba(255,255,255,.6); border: 1px solid #a8d8f0;
+      border-radius: 6px; padding: 3px 7px; font-size: 9px; font-weight: 700;
+      color: #3a9ecf; cursor: pointer; white-space: nowrap; transition: all .15s;
+    }
+    .gym-comp-own-toggle:hover { background: rgba(125,226,252,.18); }
+
+    /* ジムを追加カラム */
+    .gym-comp-th-add-gym {
+      padding: 8px 4px; width: 52px; min-width: 52px; text-align: center;
+      background: linear-gradient(180deg,#f4f7fc,#eef2fa); vertical-align: middle;
+    }
+    .gym-comp-td-add-gym { background: #f8fafe; }
+    .gym-comp-add-gym-col-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; background: none; border: 1.5px dashed #7DCFF0; border-radius: 10px;
+      padding: 8px 2px; cursor: pointer; color: #3a9ecf; font-size: 10px; font-weight: 700;
+      width: 100%; transition: all .15s; line-height: 1.3;
+    }
+    .gym-comp-add-gym-col-btn:hover { background: #eaf7fd; border-color: #4ab8e8; }
+
+    /* しばジム列 非表示 */
+    .gym-comp-own-hidden .gym-comp-th-own,
+    .gym-comp-own-hidden .gym-comp-td-own,
+    .gym-comp-own-hidden .gym-comp-total-own { display: none; }
+
+    /* ── tbody ── */
+    .gym-comp-table tbody tr { border-bottom: 1px solid #eef2f8; transition: background .1s; }
+    .gym-comp-table tbody tr:last-child { border-bottom: none; }
+    .gym-comp-table tbody tr:hover { background: #fafcff; }
+    .gym-comp-td-label {
+      padding: 10px 6px; font-size: 10px; font-weight: 800; color: #7a88a8;
+      width: 66px; min-width: 66px; max-width: 66px; line-height: 1.45;
+      letter-spacing: .02em;
+    }
+    .gym-comp-badge {
+      display: block; font-size: 8px; font-weight: 700; border-radius: 3px;
+      padding: 1px 4px; margin-top: 3px; width: fit-content;
+    }
+    .gym-comp-badge-price  { background: #dbeafe; color: #2563eb; }
+    .gym-comp-badge-count  { background: #dcfce7; color: #16a34a; }
+    .gym-comp-badge-option { background: #ede9fe; color: #7c3aed; }
+
+    /* データセル */
+    .gym-comp-td-data { padding: 8px 6px; text-align: center; vertical-align: middle; }
+    .gym-comp-td-own  { background: linear-gradient(160deg,#f0faff,#f5f0ff); }
+
+    /* ── しばジム 静的表示 ── */
+    .gym-comp-own-price  { display: block; font-size: 15px; font-weight: 800; color: #2d7fb5; }
+    .gym-comp-own-free   {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      background: linear-gradient(135deg,#7DE2FC,#B9B6E5);
+      color: #fff; border-radius: 100px; padding: 2px 10px;
+    }
+    .gym-comp-own-count  { font-size: 12px; font-weight: 700; color: #3a7aaa; }
+    .gym-comp-price-sub  { display: block; font-size: 10px; color: #9aaccc; margin-top: 2px; }
+    .gym-comp-ok  { display: block; color: #16a34a; font-size: 17px; font-weight: 800; }
+    .gym-comp-ng  { display: block; color: #dc2626; font-size: 15px; font-weight: 700; }
+    .gym-comp-na  { display: block; color: #c7c7cc; font-size: 17px; }
+    .gym-comp-icon-sub { display: block; font-size: 10px; color: #9aaccc; margin-top: 1px; }
+
+    /* ── 入力フィールド（共通） ── */
+    .gym-comp-input-base {
+      width: 100%; border: 1.5px solid #dde6f5; border-radius: 8px;
+      font-size: 13px; font-weight: 700; outline: none; background: #f8faff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .gym-comp-input-base:focus { border-color: #7DCFF0; background: #fff; box-shadow: 0 0 0 3px rgba(125,210,240,.15); }
+
+    /* 料金入力 */
+    .gym-comp-price-wrap { position: relative; }
+    .gym-comp-yen { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #9aaccc; pointer-events: none; }
+    .gym-comp-input-price {
+      width: 100%; padding: 7px 6px 7px 18px;
+      border: 1.5px solid #dde6f5; border-radius: 8px; font-size: 13px; font-weight: 700;
+      text-align: right; outline: none; background: #f8faff;
+      transition: border-color .15s, box-shadow .15s;
+      -moz-appearance: textfield; appearance: textfield;
+    }
+    .gym-comp-input-price::-webkit-inner-spin-button,
+    .gym-comp-input-price::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .gym-comp-input-price:focus { border-color: #7DCFF0; background: #fff; box-shadow: 0 0 0 3px rgba(125,210,240,.15); }
+
+    /* 回数プルダウン */
+    .gym-comp-count-select {
+      width: 100%; padding: 7px 4px; border: 1.5px solid #dde6f5; border-radius: 8px;
+      font-size: 12px; font-weight: 700; text-align: center; outline: none;
+      background: #f8faff; cursor: pointer; color: #1a2035;
+      transition: border-color .15s, box-shadow .15s; appearance: none;
+      -webkit-appearance: none; text-align-last: center;
+    }
+    .gym-comp-count-select:focus { border-color: #7DCFF0; background: #fff; box-shadow: 0 0 0 3px rgba(125,210,240,.15); }
+
+    /* チェックボックス */
+    .gym-comp-chk-wrap { display: flex; align-items: center; justify-content: center; }
+    .gym-comp-chk { width: 19px; height: 19px; accent-color: #5ab8e0; cursor: pointer; }
+
+    /* 行削除ボタン */
+    .gym-comp-row-del {
+      width: 22px; height: 22px; border-radius: 50%; background: transparent;
+      color: #c7d0e0; border: none; cursor: pointer; font-size: 14px; line-height: 1;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto;
+      transition: all .15s; padding: 0;
+    }
+    .gym-comp-row-del:hover { background: #fee2e2; color: #c62f2f; }
+
+    /* ── tfoot（総額） ── */
+    .gym-comp-table tfoot td {
+      padding: 14px 8px; border-top: 2px solid #e8eef8;
+      text-align: center; font-size: 12px; background: #fff;
+    }
+    .gym-comp-table tfoot td:first-child {
+      font-size: 10px; font-weight: 800; color: #8a96b0; text-align: center;
+      background: linear-gradient(180deg,#f4f7fc,#eef2fa); padding: 14px 6px;
+      line-height: 1.5;
+    }
+    .gym-comp-total-own { background: linear-gradient(160deg,#eef8ff,#ede9fa) !important; }
+    .gym-comp-total-price { display: block; font-size: 19px; font-weight: 800; line-height: 1.2; color: #1a2035; }
+    .gym-comp-total-own .gym-comp-total-price { color: #2d7fb5; }
+    .gym-comp-total-diff { display: block; font-size: 10px; margin-top: 3px; color: #9aaccc; }
+    .gym-comp-total-diff.higher { color: #e05050; font-weight: 700; }
+    .gym-comp-total-diff.lower  { color: #22a866; font-weight: 700; }
+
+    /* ── 項目追加パネル ── */
+    .gym-comp-add-row-wrap { max-width: 820px; margin: 0 auto 28px; padding: 0 16px; }
+    .gym-comp-add-row-inner {
+      background: rgba(255,255,255,.85); backdrop-filter: blur(12px);
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(90,130,200,.1), 0 0 0 1px rgba(200,220,255,.5);
+      padding: 14px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .gym-comp-add-row-title {
+      font-size: 11px; font-weight: 800; color: #8a96b0;
+      white-space: nowrap; letter-spacing: .05em;
+    }
+    .gym-comp-add-field-label {
+      font-size: 10px; font-weight: 700; color: #9aaccc; white-space: nowrap;
+    }
+    .gym-comp-add-type-select,
+    .gym-comp-add-label-select {
+      border: 1.5px solid #dde6f5; border-radius: 10px; padding: 8px 10px;
+      font-size: 12px; font-weight: 600; background: #f8faff; outline: none;
+      cursor: pointer; transition: border-color .15s; color: #1a2035;
+    }
+    .gym-comp-add-type-select:focus,
+    .gym-comp-add-label-select:focus { border-color: #7DCFF0; }
+    .gym-comp-add-label-input {
+      flex: 1; min-width: 90px; border: 1.5px solid #dde6f5; border-radius: 10px;
+      padding: 8px 10px; font-size: 13px; outline: none; color: #1a2035;
+      background: #f8faff; transition: border-color .15s;
+    }
+    .gym-comp-add-label-input:focus { border-color: #7DCFF0; box-shadow: 0 0 0 2px rgba(125,210,240,.15); }
+    .gym-comp-add-row-btn {
+      background: linear-gradient(135deg,#7DE2FC,#B9B6E5);
+      color: #fff; border: none; border-radius: 10px;
+      padding: 8px 18px; font-size: 12px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: opacity .15s, transform .1s; box-shadow: 0 2px 8px rgba(125,185,229,.3);
+    }
+    .gym-comp-add-row-btn:hover  { opacity: .88; }
+    .gym-comp-add-row-btn:active { transform: scale(.97); }
+
+    /* ── 送信ボタン ── */
+    .gym-comp-actions { display: none; }
+    .gym-comp-submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #7DE2FC 0%, #B9B6E5 100%);
+      color: #fff; border: none; border-radius: 16px;
+      padding: 17px; font-size: 15px; font-weight: 800; letter-spacing: .04em;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+      box-shadow: 0 4px 20px rgba(100,190,230,.35);
+    }
+    .gym-comp-submit-btn:hover  { opacity: .9; }
+    .gym-comp-submit-btn:active { transform: scale(.98); }
+    .gym-comp-submit-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    /* ── Toast ── */
+    .gym-comp-toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(70px);
+      background: linear-gradient(135deg,#3aa8d8,#8b80d0);
+      color: #fff; font-size: 13px; font-weight: 700; padding: 11px 24px;
+      border-radius: 100px; white-space: nowrap; pointer-events: none;
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 9999;
+      box-shadow: 0 4px 20px rgba(80,150,210,.35);
+    }
+    .gym-comp-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── タブ ── */
+    .gym-comp-tabs {
+      display: flex; max-width: 820px; margin: 0 auto 16px; padding: 0 16px; gap: 8px;
+    }
+    .gym-comp-tab {
+      padding: 8px 22px; font-size: 12px; font-weight: 700; border-radius: 20px;
+      border: 1.5px solid #cdd8ee; background: rgba(255,255,255,.7);
+      cursor: pointer; color: #6b7588; transition: all .18s; white-space: nowrap;
+    }
+    .gym-comp-tab.active {
+      background: linear-gradient(135deg, #7DE2FC, #B9B6E5);
+      color: #fff; border-color: transparent;
+      box-shadow: 0 2px 10px rgba(125,185,229,.35);
+    }
+    .gym-comp-tab:not(.active):hover { background: #fff; color: #1a2035; border-color: #9ab0d8; }
+
+    /* ── N回換算バー（テーブル直下） ── */
+    .gym-comp-norm-bar   {
+      max-width: 820px; margin: 6px auto 10px; padding: 0 16px;
+      display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+    }
+    .gym-comp-norm-label { font-size: 11px; font-weight: 700; color: #6b7588; white-space: nowrap; }
+    .gym-comp-norm-select {
+      border: 1.5px solid #cdd8ee; border-radius: 8px;
+      padding: 5px 8px; font-size: 12px; font-weight: 700; text-align: center;
+      background: rgba(255,255,255,.7); outline: none; color: #1a2035;
+      cursor: pointer; appearance: none; -webkit-appearance: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .gym-comp-norm-select:focus { border-color: #7DCFF0; background: #fff; box-shadow: 0 0 0 3px rgba(125,210,240,.18); }
+
+    /* ── 期間プルダウン（食事管理費セル内） ── */
+    .gym-comp-period-select {
+      width: 100%; margin-top: 4px;
+      border: 1.5px solid #dde6f5; border-radius: 6px;
+      padding: 4px 4px; font-size: 10px; font-weight: 700; text-align: center;
+      background: #f8faff; outline: none; cursor: pointer; color: #6b7588;
+      appearance: none; -webkit-appearance: none; text-align-last: center;
+      transition: border-color .15s;
+    }
+    .gym-comp-period-select:focus { border-color: #7DCFF0; }
+    .gym-comp-norm-note  { display: block; font-size: 9px; font-weight: 700; color: #5ab8e0; margin-top: 2px; }
+
+    /* ── tfoot 単価・オプション行 ── */
+    .gym-comp-table tfoot .gym-comp-tfoot-sub td { border-top: 1px solid #eef2f8; padding: 10px 8px; }
+    .gym-comp-table tfoot .gym-comp-tfoot-sub td:first-child { padding: 10px 6px; }
+    .gym-comp-unit-price { display: block; font-size: 16px; font-weight: 800; line-height: 1.2; color: #1a2035; }
+    .gym-comp-total-own .gym-comp-unit-price { color: #2d7fb5; }
+    .gym-comp-unit-sub  { display: block; font-size: 10px; color: #9aaccc; margin-top: 2px; }
+    .gym-comp-opt-list  { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; align-items: center; }
+    .gym-comp-opt-item  { font-size: 10px; font-weight: 700; color: #16a34a; background: #dcfce7; border-radius: 4px; padding: 2px 7px; white-space: nowrap; }
+    .gym-comp-opt-none  { font-size: 11px; color: #c7c7cc; }
+
+    @media (max-width: 480px) {
+      .gym-comp-add-row-inner { flex-direction: column; align-items: stretch; }
+      .gym-comp-toolbar  { padding: 0 12px; gap: 6px; }
+      .gym-comp-header   { padding: 36px 14px 24px; }
+      .gym-comp-input-price { font-size: 12px; }
+      .gym-comp-own-price   { font-size: 13px; }
+      .gym-comp-total-price { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="gym-comp-root">
+
+  <header class="gym-comp-header">
+    <h1 class="gym-comp-h1">料金比較ツール</h1>
+  </header>
+
+  <!-- タブ -->
+  <div class="gym-comp-tabs">
+    <button class="gym-comp-tab active" data-tab="personal" onclick="gcSwitchTab('personal')">パーソナルジム</button>
+    <button class="gym-comp-tab"        data-tab="fitness"  onclick="gcSwitchTab('fitness')">フィットネスジム</button>
+  </div>
+
+  <!-- ツールバー -->
+  <div class="gym-comp-toolbar">
+    <button class="gym-comp-reset-btn" onclick="gcResetDefaults()">⟳ デフォルトに戻す</button>
+    <button class="gym-comp-own-show-btn" id="gc-toggle-own-toolbar" onclick="gcToggleOwn()" style="display:none">しばジムを表示する</button>
+  </div>
+
+  <!-- 比較テーブル -->
+  <div class="gym-comp-table-outer">
+    <div class="gym-comp-table-scroll">
+      <table class="gym-comp-table">
+        <thead id="gc-thead"></thead>
+        <tbody  id="gc-tbody"></tbody>
+        <tfoot  id="gc-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- N回換算バー -->
+  <div class="gym-comp-norm-bar">
+    <span class="gym-comp-norm-label">月</span>
+    <select class="gym-comp-norm-select" id="gc-norm-count" onchange="gcSetNorm(this.value)">
+      <option value="">—</option>
+      <option>1</option><option>2</option><option>3</option><option>4</option>
+      <option>5</option><option>6</option><option>7</option><option>8</option>
+      <option>9</option><option>10</option><option>11</option><option>12</option>
+      <option>13</option><option>14</option><option>15</option><option>16</option>
+    </select>
+    <span class="gym-comp-norm-label">回で換算</span>
+  </div>
+
+  <!-- 項目追加パネル -->
+  <div class="gym-comp-add-row-wrap">
+    <div class="gym-comp-add-row-inner">
+      <span class="gym-comp-add-row-title">項目を追加</span>
+      <span class="gym-comp-add-field-label">タイプ</span>
+      <select class="gym-comp-add-type-select" id="gc-new-type" onchange="gcUpdateLabels()">
+        <option value="" disabled selected>── 選択 ──</option>
+        <option value="price">料金</option>
+        <option value="count">回数</option>
+        <option value="option">オプション</option>
+      </select>
+      <span class="gym-comp-add-field-label">項目名</span>
+      <select class="gym-comp-add-label-select" id="gc-new-label-sel" onchange="gcToggleCustom()">
+        <!-- JS で動的生成 -->
+      </select>
+      <input type="text" class="gym-comp-add-label-input" id="gc-new-label-txt"
+             placeholder="項目名を入力" style="display:none">
+      <button class="gym-comp-add-row-btn" onclick="gcAddRow()">＋ 追加</button>
+    </div>
+  </div>
+
+  <!-- 送信ボタン -->
+  <div class="gym-comp-actions">
+    <button class="gym-comp-submit-btn" id="gc-submit-btn" onclick="gcSubmit()">
+      比較結果を記録する
+    </button>
+  </div>
+
+</div>
+<div class="gym-comp-toast" id="gc-toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbzAw1iGrqHCv1AxI6QCuH9xcnCw5Y1tdPxUJx-4FfdUbkpRDOGHoVypAouLPy84TOks8w/exec';
+
+  /* ================================================================
+     パーソナルジム 固定データ
+  ================================================================ */
+  var PERSONAL_OWN = {
+    r1: { type:'price',  value:'60000', note:'8回込み'     },
+    r2: { type:'count',  value:'月8回', note:''            },
+    r3: { type:'price',  value:'0',     note:'食事管理込み' },
+    r4: { type:'option', value:'1',     label:'あり'        },
+    r5: { type:'option', value:'1',     label:'可'          },
+    r6: { type:'option', value:'1',     label:'あり'        },
+    r7: { type:'option', value:'1',     label:'あり'        }
+  };
+  var PERSONAL_DEFAULT_ROWS = [
+    { id:'r1', type:'price',  label:'月額'           },
+    { id:'r2', type:'count',  label:'回数'           },
+    { id:'r3', type:'price',  label:'食事管理費'     },
+    { id:'r4', type:'option', label:'返金保証'       },
+    { id:'r5', type:'option', label:'子連れ対応'     },
+    { id:'r6', type:'option', label:'アフタープラン' },
+    { id:'r7', type:'option', label:'ウェア貸し出し' }
+  ];
+
+  /* ================================================================
+     フィットネスジム 固定データ（しばジムの値は要設定）
+  ================================================================ */
+  var FITNESS_OWN = {
+    f1: { type:'price',         value:'0',    note:'', zeroLabel:'なし' },
+    f2: { type:'session_price', value:'7500', note:'' },
+    f3: { type:'count',         value:'月8回', note:'' },
+    r3: { type:'price',         value:'0',    note:'食事管理込み' },
+    r4: { type:'option', value:'1', label:'あり' },
+    r5: { type:'option', value:'1', label:'可'   },
+    r6: { type:'option', value:'1', label:'あり' },
+    r7: { type:'option', value:'1', label:'あり' }
+  };
+  var FITNESS_DEFAULT_ROWS = [
+    { id:'f1', type:'price',         label:'月会費'         },
+    { id:'f2', type:'session_price', label:'PT1回'          },
+    { id:'f3', type:'count',         label:'月回数'         },
+    { id:'r3', type:'price',         label:'食事管理費'     },
+    { id:'r4', type:'option',        label:'返金保証'       },
+    { id:'r5', type:'option',        label:'子連れ対応'     },
+    { id:'r6', type:'option',        label:'アフタープラン' },
+    { id:'r7', type:'option',        label:'ウェア貸し出し' }
+  ];
+
+  /* 現在アクティブなタブのデータ（切り替え時に差し替え） */
+  var OWN          = PERSONAL_OWN;
+  var DEFAULT_ROWS = PERSONAL_DEFAULT_ROWS;
+  var DEFAULT_IDS  = DEFAULT_ROWS.map(function(r){ return r.id; });
+
+  /* ラベルの表示用HTML（改行あり） */
+  var DISPLAY_LABELS = {
+    r1: '月額',      r2: '回数',        r3: '食事<br>管理',
+    r4: '返金<br>保証', r5: '子連れ<br>対応', r6: 'アフター<br>プラン', r7: 'ウェア<br>貸出',
+    f1: '月会費',   f2: 'PT<br>1回',    f3: '月<br>回数'
+  };
+
+  /* 項目追加パネルのプリセット */
+  var LABEL_PRESETS = {
+    price:  ['入会金', '事務手数料', '月会費', 'その他'],
+    option: ['ウェア貸出', 'シャワー完備', '駐車場あり', 'その他']
+  };
+
+  /* ================================================================
+     STATE
+  ================================================================ */
+  var S = {
+    gyms: [
+      { id:'g0', name:'しばジム', isOwn:true  },
+      { id:'g1', name:'ジム①',   isOwn:false }
+    ],
+    rows: PERSONAL_DEFAULT_ROWS.map(function(r){ return Object.assign({},r); }),
+    cells: {
+      'r1-g1':'', 'r2-g1':'', 'r3-g1':'', 'r3-g1-p':'1',
+      'r4-g1':'0', 'r5-g1':'0', 'r6-g1':'0', 'r7-g1':'0'
+    },
+    _rid: 8, _gid: 2
+  };
+
+  var FITNESS_INITIAL_S = {
+    gyms: [
+      { id:'g0', name:'しばジム', isOwn:true  },
+      { id:'g1', name:'ジム①',   isOwn:false }
+    ],
+    rows: FITNESS_DEFAULT_ROWS.map(function(r){ return Object.assign({},r); }),
+    cells: {
+      'f1-g1':'', 'f2-g1':'', 'f3-g1':'',
+      'r3-g1':'', 'r3-g1-p':'1',
+      'r4-g1':'0', 'r5-g1':'0', 'r6-g1':'0', 'r7-g1':'0'
+    },
+    _rid: 8, _gid: 2
+  };
+
+  function cloneState(st) {
+    return {
+      gyms:  st.gyms.map(function(g){ return Object.assign({},g); }),
+      rows:  st.rows.map(function(r){ return Object.assign({},r); }),
+      cells: Object.assign({}, st.cells),
+      _rid:  st._rid, _gid: st._gid
+    };
+  }
+
+  var currentTab  = 'personal';
+  var TAB_STATES  = { personal: null, fitness: null };
+
+  var ownHidden = false;
+  var normCount = 0; // 0 = 換算なし（そのまま表示）
+  var CIRCLE = ['①','②','③'];
+  var COUNT_OPTIONS = ['1','2','3','4','5','6','7','8','9','10','11','12','無制限'];
+
+  function nextRid() { return 'r' + (S._rid++); }
+  function nextGid() { return 'g' + (S._gid++); }
+  function cell(rid, gid) { var v = S.cells[rid+'-'+gid]; return v !== undefined ? v : ''; }
+  function isDefault(rid) { return DEFAULT_IDS.indexOf(rid) !== -1; }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  /* 2文字ごとに改行するラベルHTML（ユーザー追加行用） */
+  function autoBreakLabel(label) {
+    var s = String(label);
+    if (s.length <= 4) return esc(s);
+    // 4文字以内を1行目、残りを2行目
+    return esc(s.slice(0, 4)) + '<br>' + esc(s.slice(4));
+  }
+
+  /* ================================================================
+     総額計算
+  ================================================================ */
+  function calcTotal(gymId) {
+    var t = 0;
+    var count = calcCount(gymId);
+    S.rows.forEach(function(row) {
+      var rawVal = gymId === 'g0'
+        ? (OWN[row.id] ? parseFloat(OWN[row.id].value) || 0 : 0)
+        : parseFloat(cell(row.id, gymId)) || 0;
+      if (row.type === 'price') {
+        if (rawVal && row.id === 'r3') {
+          var period = parseInt(S.cells[row.id+'-'+gymId+'-p'] || '1', 10) || 1;
+          t += rawVal / period;
+        } else {
+          t += rawVal;
+        }
+      } else if (row.type === 'session_price') {
+        // 単価 × 月回数
+        var n = (count > 0 && count !== Infinity) ? count : 0;
+        t += rawVal * n;
+      }
+    });
+    return t;
+  }
+
+  /* N回換算した総額を返す（換算なしの場合はそのまま） */
+  function getNormTotal(gymId) {
+    if (normCount <= 0) return calcTotal(gymId);
+    var hasSession = S.rows.some(function(r){ return r.type === 'session_price'; });
+    if (hasSession) {
+      // フィットネスモード: 月会費(固定) + PT単価 × normCount
+      var flat = 0, unitPrice = 0;
+      S.rows.forEach(function(row) {
+        var v = gymId === 'g0'
+          ? (OWN[row.id] ? parseFloat(OWN[row.id].value)||0 : 0)
+          : parseFloat(cell(row.id, gymId))||0;
+        if (row.type === 'price')         flat      += v;
+        else if (row.type === 'session_price') unitPrice += v;
+      });
+      return Math.round(flat + unitPrice * normCount);
+    }
+    // パーソナルモード: 合計 ÷ 回数 × normCount
+    var total = calcTotal(gymId);
+    if (total <= 0) return total;
+    var count = calcCount(gymId);
+    if (count <= 0 || count === Infinity) return total;
+    return Math.round(total / count * normCount);
+  }
+
+  /* 回数取得（最初に見つかった count 行の値を返す） */
+  function calcCount(gymId) {
+    for (var i = 0; i < S.rows.length; i++) {
+      var row = S.rows[i];
+      if (row.type !== 'count') continue;
+      var val = gymId === 'g0'
+        ? (OWN[row.id] ? OWN[row.id].value : '')
+        : cell(row.id, gymId);
+      if (!val) continue;
+      if (String(val) === '無制限') return Infinity;
+      var n = parseInt(String(val).replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(n) && n > 0) return n;
+    }
+    return 0;
+  }
+
+  /* チェック済みオプション名リストを返す */
+  function getCheckedOptions(gymId) {
+    var opts = [];
+    S.rows.forEach(function(row) {
+      if (row.type !== 'option') return;
+      var val = gymId === 'g0'
+        ? (OWN[row.id] ? OWN[row.id].value : '0')
+        : cell(row.id, gymId);
+      if (val === '1') opts.push(row.label);
+    });
+    return opts;
+  }
+
+  /* ================================================================
+     しばジムセルの静的HTML
+  ================================================================ */
+  function ownCellHtml(row) {
+    var def = OWN[row.id];
+    if (!def) return '<span class="gym-comp-na">—</span>';
+    if (row.type === 'price' || row.type === 'session_price') {
+      var num = parseFloat(def.value) || 0;
+      if (num === 0)
+        return '<span class="gym-comp-own-free">'+(def.zeroLabel||'込み')+'</span>'
+             + (def.note ? '<span class="gym-comp-price-sub">'+esc(def.note)+'</span>' : '');
+      var suffix = row.type === 'session_price' ? '<span class="gym-comp-price-sub">/ 回</span>' : '';
+      return '<span class="gym-comp-own-price">¥'+num.toLocaleString('ja-JP')+'</span>'
+           + suffix
+           + (def.note ? '<span class="gym-comp-price-sub">'+esc(def.note)+'</span>' : '');
+    }
+    if (row.type === 'count') {
+      return '<span class="gym-comp-own-count">'+esc(def.value)+'</span>';
+    }
+    return def.value === '1'
+      ? '<span class="gym-comp-ok">✓</span><span class="gym-comp-icon-sub">'+esc(def.label||'あり')+'</span>'
+      : '<span class="gym-comp-ng">✕</span><span class="gym-comp-icon-sub">'+esc(def.label||'なし')+'</span>';
+  }
+
+  /* ================================================================
+     RENDER
+  ================================================================ */
+  function renderThead() {
+    var h = '<tr><th>比較<br>項目</th>';
+    S.gyms.forEach(function(gym, i) {
+      h += '<th class="gym-comp-th-gym '+(gym.isOwn?'gym-comp-th-own':'')+'">';
+      if (gym.isOwn) {
+        h += '<div class="gym-comp-own-badge">しばジム</div>'
+           + '<div class="gym-comp-own-header-name">しばジム</div>'
+           + '<button id="gc-toggle-own-btn" class="gym-comp-own-toggle" onclick="gcToggleOwn()">'
+           + (ownHidden ? '表示する' : '非表示')
+           + '</button>';
+      } else {
+        h += '<div class="gym-comp-gym-name">'
+           + '<input type="text" class="gym-comp-gym-name-input" data-gidx="'+i
+           + '" value="'+esc(gym.name)+'" placeholder="ジム名">'
+           + '<button class="gym-comp-gym-del" onclick="gcRemoveGym(\''+gym.id+'\')" title="削除">×</button>'
+           + '</div>';
+      }
+      h += '</th>';
+    });
+    if (S.gyms.length < 3) {
+      h += '<th class="gym-comp-th-add-gym">'
+         + '<button class="gym-comp-add-gym-col-btn" onclick="gcAddGym()">＋<br>追加</button>'
+         + '</th>';
+    }
+    h += '<th class="gym-comp-th-actions"></th></tr>';
+    document.getElementById('gc-thead').innerHTML = h;
+  }
+
+  function renderTbody() {
+    var h = '';
+    S.rows.forEach(function(row) {
+      var badgeCls = {price:'gym-comp-badge-price',session_price:'gym-comp-badge-price',count:'gym-comp-badge-count',option:'gym-comp-badge-option'}[row.type] || 'gym-comp-badge-price';
+      var badgeLbl = {price:'料金',session_price:'単価',count:'回数',option:'オプ'}[row.type] || '料金';
+      var def = isDefault(row.id);
+      var labelHtml = def ? (DISPLAY_LABELS[row.id] || esc(row.label)) : autoBreakLabel(row.label);
+
+      h += '<tr>';
+      h += '<td class="gym-comp-td-label">'
+         + labelHtml
+         + '<span class="gym-comp-badge '+badgeCls+'">'+badgeLbl+'</span>'
+         + '</td>';
+
+      S.gyms.forEach(function(gym) {
+        var ownCls = gym.isOwn ? ' gym-comp-td-own' : '';
+        h += '<td class="gym-comp-td-data'+ownCls+'">';
+
+        if (gym.isOwn) {
+          h += ownCellHtml(row);
+        } else {
+          var key = row.id+'-'+gym.id;
+          var val = cell(row.id, gym.id);
+          if (row.type === 'price' || row.type === 'session_price') {
+            h += '<div class="gym-comp-price-wrap">'
+               + '<span class="gym-comp-yen">¥</span>'
+               + '<input type="number" class="gym-comp-input-price" data-cell="'+esc(key)+'"'
+               + ' value="'+esc(val)+'" placeholder="0" min="0" oninput="gcCellInput(this)">'
+               + '</div>';
+            if (row.type === 'session_price') {
+              h += '<span class="gym-comp-price-sub" style="display:block;text-align:center;">× 回数</span>';
+            }
+            if (row.id === 'r3') {
+              var pkey = row.id+'-'+gym.id+'-p';
+              var pval = S.cells[pkey] || '1';
+              h += '<select class="gym-comp-period-select" data-period="'+esc(pkey)+'" onchange="gcPeriodInput(this)">'
+                 + [1,2,3,4,5,6].map(function(n){
+                     return '<option value="'+n+'"'+(pval===String(n)?' selected':'')+'>'+n+'ヶ月分</option>';
+                   }).join('')
+                 + '</select>';
+            }
+          } else if (row.type === 'count') {
+            h += '<select class="gym-comp-count-select" data-cell="'+esc(key)+'" onchange="gcCellInput(this)">'
+               + '<option value="">—</option>'
+               + COUNT_OPTIONS.map(function(o) {
+                   return '<option value="'+o+'"'+(val===o?' selected':'')+'>'+o+(o==='無制限'?'':'回')+'</option>';
+                 }).join('')
+               + '</select>';
+          } else {
+            h += '<div class="gym-comp-chk-wrap">'
+               + '<input type="checkbox" class="gym-comp-chk" data-cell="'+esc(key)+'"'
+               + (val==='1'?' checked':'') + ' onchange="gcCellInput(this)">'
+               + '</div>';
+          }
+        }
+        h += '</td>';
+      });
+
+      if (S.gyms.length < 3) {
+        h += '<td class="gym-comp-td-add-gym"></td>';
+      }
+      h += '<td style="padding:0 4px;text-align:center;background:#fff;width:28px;">';
+      if (!def) {
+        h += '<button class="gym-comp-row-del" onclick="gcRemoveRow(\''+row.id+'\')" title="行を削除">×</button>';
+      }
+      h += '</td></tr>';
+    });
+    document.getElementById('gc-tbody').innerHTML = h;
+  }
+
+  function renderTfoot() {
+    var ownNormTotal = getNormTotal('g0');
+
+    // ── 行1: 1ヶ月総額（換算対応） ──
+    var totalLabel = normCount > 0 ? '月'+normCount+'回<br>換算額' : '1ヶ月<br>総額';
+    var h = '<tr><td>'+totalLabel+'</td>';
+    S.gyms.forEach(function(gym) {
+      var rawTotal   = calcTotal(gym.id);
+      var dispTotal  = getNormTotal(gym.id);
+      var priceStr   = dispTotal > 0 ? '¥'+dispTotal.toLocaleString('ja-JP') : '—';
+      var normNote   = (normCount > 0 && rawTotal > 0 && calcCount(gym.id) > 0 && calcCount(gym.id) !== Infinity)
+                       ? '<span class="gym-comp-norm-note">（'+calcCount(gym.id)+'回→'+normCount+'回換算）</span>'
+                       : '';
+      if (gym.isOwn) {
+        h += '<td class="gym-comp-total-own">'
+           + '<span class="gym-comp-total-price">'+priceStr+'</span>'
+           + (normNote || '<span class="gym-comp-total-diff">食事込み</span>')
+           + '</td>';
+      } else {
+        var diff = dispTotal - ownNormTotal;
+        var diffHtml = '';
+        if (dispTotal > 0 && ownNormTotal > 0) {
+          if (diff > 0)
+            diffHtml = '<span class="gym-comp-total-diff higher">しばジムより ¥'+diff.toLocaleString('ja-JP')+' 高</span>';
+          else if (diff < 0)
+            diffHtml = '<span class="gym-comp-total-diff lower">しばジムより ¥'+Math.abs(diff).toLocaleString('ja-JP')+' 安</span>';
+          else
+            diffHtml = '<span class="gym-comp-total-diff">同額</span>';
+        }
+        h += '<td><span class="gym-comp-total-price">'+priceStr+'</span>'+normNote+diffHtml+'</td>';
+      }
+    });
+    if (S.gyms.length < 3) h += '<td class="gym-comp-td-add-gym"></td>';
+    h += '<td style="background:#fff;width:28px;"></td></tr>';
+
+    // ── 行2: 1回あたり単価 ──
+    h += '<tr class="gym-comp-tfoot-sub"><td>1回<br>単価</td>';
+    S.gyms.forEach(function(gym) {
+      var total = calcTotal(gym.id);
+      var count = calcCount(gym.id);
+      var ownCls = gym.isOwn ? 'gym-comp-total-own' : '';
+      var content;
+      if (total <= 0 || count <= 0) {
+        content = '<span class="gym-comp-na">—</span>';
+      } else if (count === Infinity) {
+        content = '<span class="gym-comp-unit-price">—</span>'
+                + '<span class="gym-comp-unit-sub">無制限</span>';
+      } else {
+        var unit = Math.round(total / count);
+        content = '<span class="gym-comp-unit-price">¥'+unit.toLocaleString('ja-JP')+'</span>'
+                + '<span class="gym-comp-unit-sub">/ 回 · 月'+count+'回</span>';
+      }
+      h += '<td class="'+ownCls+'">'+content+'</td>';
+    });
+    if (S.gyms.length < 3) h += '<td class="gym-comp-td-add-gym"></td>';
+    h += '<td style="background:#fff;width:28px;"></td></tr>';
+
+    // ── 行3: チェック済みオプション ──
+    h += '<tr class="gym-comp-tfoot-sub"><td>オプ<br>ション</td>';
+    S.gyms.forEach(function(gym) {
+      var opts = getCheckedOptions(gym.id);
+      var ownCls = gym.isOwn ? 'gym-comp-total-own' : '';
+      var content = opts.length === 0
+        ? '<span class="gym-comp-opt-none">なし</span>'
+        : '<ul class="gym-comp-opt-list">'
+          + opts.map(function(o){ return '<li class="gym-comp-opt-item">'+esc(o)+'</li>'; }).join('')
+          + '</ul>';
+      h += '<td class="'+ownCls+'">'+content+'</td>';
+    });
+    if (S.gyms.length < 3) h += '<td class="gym-comp-td-add-gym"></td>';
+    h += '<td style="background:#fff;width:28px;"></td></tr>';
+
+    document.getElementById('gc-tfoot').innerHTML = h;
+  }
+
+  function syncOwnToggle() {
+    var table = document.querySelector('.gym-comp-table');
+    if (!table) return;
+    if (ownHidden) table.classList.add('gym-comp-own-hidden');
+    else           table.classList.remove('gym-comp-own-hidden');
+    var tb = document.getElementById('gc-toggle-own-toolbar');
+    if (tb) tb.style.display = ownHidden ? '' : 'none';
+  }
+
+  function renderAll() {
+    renderThead();
+    renderTbody();
+    renderTfoot();
+    syncOwnToggle();
+  }
+
+  /* ================================================================
+     CELL INPUT
+  ================================================================ */
+  window.gcCellInput = function(el) {
+    S.cells[el.dataset.cell] = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+    renderTfoot();
+    scheduleAutoSend();
+  };
+
+  window.gcPeriodInput = function(el) {
+    S.cells[el.dataset.period] = el.value;
+    renderTfoot();
+    scheduleAutoSend();
+  };
+
+  /* ジム名入力（委譲） */
+  document.addEventListener('input', function(e) {
+    var el = e.target;
+    if (el.dataset.gidx !== undefined) {
+      var idx = parseInt(el.dataset.gidx, 10);
+      if (S.gyms[idx]) S.gyms[idx].name = el.value;
+      scheduleAutoSend();
+    }
+  });
+
+  /* ================================================================
+     項目追加パネル制御
+  ================================================================ */
+  window.gcUpdateLabels = function() {
+    var type = document.getElementById('gc-new-type').value;
+    var sel  = document.getElementById('gc-new-label-sel');
+    var txt  = document.getElementById('gc-new-label-txt');
+
+    if (!type) {
+      sel.style.display = 'none'; txt.style.display = 'none'; return;
+    }
+    if (type === 'count') {
+      // 回数の時はプルダウン非表示、テキスト入力を表示
+      sel.style.display = 'none';
+      txt.style.display = '';
+      txt.placeholder = '項目名（例：回数）';
+    } else {
+      sel.style.display = '';
+      sel.innerHTML = (LABEL_PRESETS[type] || ['その他']).map(function(p) {
+        return '<option value="'+esc(p)+'">'+esc(p)+'</option>';
+      }).join('');
+      window.gcToggleCustom();
+    }
+  };
+
+  window.gcToggleCustom = function() {
+    var sel = document.getElementById('gc-new-label-sel');
+    var txt = document.getElementById('gc-new-label-txt');
+    if (sel.style.display === 'none') return; // count型の時は何もしない
+    var isOther = sel.value === 'その他';
+    txt.style.display = isOther ? '' : 'none';
+    if (!isOther) txt.value = '';
+  };
+
+  /* ================================================================
+     ADD / REMOVE
+  ================================================================ */
+  window.gcAddRow = function() {
+    var type  = document.getElementById('gc-new-type').value;
+    var sel   = document.getElementById('gc-new-label-sel');
+    var txt   = document.getElementById('gc-new-label-txt');
+    var label;
+
+    if (!type) { showToast('タイプを選択してください'); document.getElementById('gc-new-type').focus(); return; }
+    if (type === 'count') {
+      label = txt.value.trim() || '回数';
+    } else {
+      label = sel.value === 'その他' ? txt.value.trim() : sel.value;
+    }
+    if (!label) { showToast('項目名を入力してください'); txt.focus(); return; }
+
+    var id = nextRid();
+    S.rows.push({ id:id, type:type, label:label });
+    S.gyms.slice(1).forEach(function(gym) {
+      S.cells[id+'-'+gym.id] = type === 'option' ? '0' : '';
+    });
+    txt.value = '';
+    window.gcUpdateLabels();
+    renderAll();
+    showToast('「'+label+'」を追加しました');
+  };
+
+  window.gcRemoveRow = function(rid) {
+    if (isDefault(rid)) { showToast('デフォルト行は削除できません'); return; }
+    S.rows = S.rows.filter(function(r){ return r.id !== rid; });
+    Object.keys(S.cells).forEach(function(k){ if (k.indexOf(rid+'-')===0) delete S.cells[k]; });
+    renderAll();
+  };
+
+  window.gcAddGym = function() {
+    if (S.gyms.length >= 3) { showToast('最大3社まで追加できます'); return; }
+    var id   = nextGid();
+    var name = 'ジム'+CIRCLE[S.gyms.length - 1];
+    S.gyms.push({ id:id, name:name, isOwn:false });
+    S.rows.forEach(function(row) {
+      S.cells[row.id+'-'+id] = row.type === 'option' ? '0' : '';
+    });
+    if (S.rows.some(function(r){ return r.id === 'r3'; })) S.cells['r3-'+id+'-p'] = '1';
+    renderAll();
+  };
+
+  window.gcRemoveGym = function(gid) {
+    S.gyms = S.gyms.filter(function(g){ return g.id !== gid; });
+    Object.keys(S.cells).forEach(function(k){
+      if (k.slice(-(gid.length+1))==='-'+gid || k==='r3-'+gid+'-p') delete S.cells[k];
+    });
+    renderAll();
+  };
+
+  window.gcSwitchTab = function(tab) {
+    if (tab === currentTab) return;
+    clearTimeout(_debounceTimer);
+    sendToGAS(buildPayload('tab_switch'));
+    // 現タブの状態を保存
+    TAB_STATES[currentTab] = cloneState(S);
+    currentTab = tab;
+    // データを切り替え
+    if (tab === 'personal') {
+      OWN          = PERSONAL_OWN;
+      DEFAULT_ROWS = PERSONAL_DEFAULT_ROWS;
+    } else {
+      OWN          = FITNESS_OWN;
+      DEFAULT_ROWS = FITNESS_DEFAULT_ROWS;
+    }
+    DEFAULT_IDS = DEFAULT_ROWS.map(function(r){ return r.id; });
+    // 保存済みなら復元、初回なら初期値
+    S = TAB_STATES[tab] || cloneState(tab === 'fitness' ? FITNESS_INITIAL_S : S);
+    normCount  = 0;
+    ownHidden  = false;
+    // タブのアクティブ状態を更新
+    document.querySelectorAll('.gym-comp-tab').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    // 換算セレクトをリセット
+    var nc = document.getElementById('gc-norm-count');
+    if (nc) nc.value = '';
+    var tb = document.getElementById('gc-toggle-own-toolbar');
+    if (tb) tb.style.display = 'none';
+    renderAll();
+  };
+
+  window.gcSetNorm = function(val) {
+    var n = parseInt(val, 10);
+    normCount = (!isNaN(n) && n > 0) ? n : 0;
+    renderTfoot();
+  };
+
+
+  window.gcToggleOwn = function() {
+    ownHidden = !ownHidden;
+    syncOwnToggle();
+    renderThead();
+  };
+
+  window.gcResetDefaults = function() {
+    var existingIds = S.rows.map(function(r){ return r.id; });
+    var missing = DEFAULT_ROWS.filter(function(r){ return existingIds.indexOf(r.id)===-1; });
+    if (missing.length === 0) { showToast('削除された項目はありません'); return; }
+    missing.forEach(function(row) {
+      S.gyms.slice(1).forEach(function(gym) {
+        var key = row.id+'-'+gym.id;
+        if (S.cells[key] === undefined) S.cells[key] = row.type==='option' ? '0' : '';
+      });
+    });
+    var userRows = S.rows.filter(function(r){ return DEFAULT_IDS.indexOf(r.id)===-1; });
+    S.rows = DEFAULT_ROWS.map(function(def){
+      return S.rows.find(function(r){ return r.id===def.id; }) || def;
+    }).concat(userRows);
+    renderAll();
+    showToast(missing.length+'項目を復元しました');
+  };
+
+  /* ================================================================
+     DATA COLLECTION
+  ================================================================ */
+  var _debounceTimer = null;
+
+  function syncGymNames() {
+    document.querySelectorAll('[data-gidx]').forEach(function(el) {
+      var idx = parseInt(el.dataset.gidx, 10);
+      if (S.gyms[idx]) S.gyms[idx].name = el.value;
+    });
+  }
+
+  function buildPayload(trigger) {
+    syncGymNames();
+    return {
+      trigger:    trigger,
+      tab:        currentTab,
+      timestamp:  new Date().toISOString(),
+      normCount:  normCount,
+      gyms:       S.gyms.map(function(g){ return g.name; }),
+      totals:     S.gyms.map(function(g){ return calcTotal(g.id); }),
+      normTotals: S.gyms.map(function(g){ return getNormTotal(g.id); })
+    };
+  }
+
+  function sendToGAS(payload, onDone) {
+    if (GAS_URL.indexOf('YOUR_DEPLOYMENT_ID') !== -1) {
+      if (onDone) setTimeout(function(){ onDone(true, true); }, 300);
+      return;
+    }
+    fetch(GAS_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    })
+    .then(function(){ if (onDone) onDone(true, false); })
+    .catch(function(){ if (onDone) onDone(false, false); });
+  }
+
+  function scheduleAutoSend() {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = setTimeout(function(){
+      sendToGAS(buildPayload('auto'));
+    }, 3000);
+  }
+
+  window.gcSubmit = function() {
+    clearTimeout(_debounceTimer);
+    var btn = document.getElementById('gc-submit-btn');
+    btn.disabled = true; btn.textContent = '送信中...';
+    sendToGAS(buildPayload('manual'), function(ok, isDummy) {
+      btn.disabled = false; btn.textContent = '比較結果を記録する';
+      showToast(isDummy
+        ? '✓ 更新しました（GAS未設定）'
+        : ok ? '✓ スプレッドシートに記録しました' : '送信エラーが発生しました');
+    });
+  };
+
+  /* ================================================================
+     TOAST / INIT
+  ================================================================ */
+  function showToast(msg) {
+    var el = document.getElementById('gc-toast');
+    el.textContent = msg; el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 2800);
+  }
+
+  // 初期状態：タイプ未選択なので項目名欄を非表示
+  document.getElementById('gc-new-label-sel').style.display = 'none';
+  document.getElementById('gc-new-label-txt').style.display = 'none';
+  renderAll();
+
+})();
+</script>
+
+</body>
+</html>
