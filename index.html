@@ -9,6 +9,10 @@
        STUDIO埋め込み用 — gym-comp- プレフィックスで干渉防止
        カラー: shibajimu.jp (#7DE2FC → #B9B6E5 グラデーション)
     ================================================================ */
+    html, body {
+      margin: 0; padding: 0; width: 100%;
+      overflow-x: hidden;
+    }
     .gym-comp-root *, .gym-comp-root *::before, .gym-comp-root *::after {
       box-sizing: border-box; margin: 0; padding: 0;
     }
@@ -18,7 +22,7 @@
       background: linear-gradient(160deg, #eaf7fd 0%, #ede9f8 100%);
       color: #1a2035;
       -webkit-font-smoothing: antialiased;
-      min-height: 100vh; padding-bottom: 72px;
+      padding-bottom: 24px;
     }
 
     /* ── Header ── */
@@ -287,7 +291,7 @@
     .gym-comp-submit-btn:active { transform: scale(.98); }
     .gym-comp-submit-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
-    /* ── Toast ── */
+    /* ── Toast（iframe内ではabsoluteに） ── */
     .gym-comp-toast {
       position: fixed; bottom: 24px; left: 50%;
       transform: translateX(-50%) translateY(70px);
@@ -296,6 +300,7 @@
       border-radius: 100px; white-space: nowrap; pointer-events: none;
       transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 9999;
       box-shadow: 0 4px 20px rgba(80,150,210,.35);
+      max-width: 90vw; text-align: center;
     }
     .gym-comp-toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -352,13 +357,22 @@
     .gym-comp-opt-item  { font-size: 10px; font-weight: 700; color: #16a34a; background: #dcfce7; border-radius: 4px; padding: 2px 7px; white-space: nowrap; }
     .gym-comp-opt-none  { font-size: 11px; color: #c7c7cc; }
 
+    /* ── スマホ対応 ── */
     @media (max-width: 480px) {
       .gym-comp-add-row-inner { flex-direction: column; align-items: stretch; }
       .gym-comp-toolbar  { padding: 0 12px; gap: 6px; }
-      .gym-comp-header   { padding: 36px 14px 24px; }
+      .gym-comp-header   { padding: 28px 12px 18px; }
+      .gym-comp-h1       { font-size: 18px; }
       .gym-comp-input-price { font-size: 12px; }
       .gym-comp-own-price   { font-size: 13px; }
       .gym-comp-total-price { font-size: 16px; }
+      .gym-comp-table-outer { padding: 0 8px; }
+      .gym-comp-add-row-wrap { padding: 0 8px; }
+      .gym-comp-tabs { padding: 0 8px; }
+      .gym-comp-norm-bar { padding: 0 8px; }
+      .gym-comp-td-label { width: 56px; min-width: 56px; max-width: 56px; font-size: 9px; padding: 8px 4px; }
+      .gym-comp-th-gym { min-width: 90px; padding: 8px 4px; }
+      .gym-comp-tab { padding: 7px 14px; font-size: 11px; }
     }
   </style>
 </head>
@@ -1117,20 +1131,29 @@
 </script>
 
 <script>
+  // iframe高さ自動調整（複数形式で通知してSTUDIO等の親に対応）
   function notifyHeight() {
+    var root = document.querySelector('.gym-comp-root');
     var h = Math.max(
+      root ? root.scrollHeight : 0,
+      root ? root.offsetHeight : 0,
       document.body.scrollHeight,
       document.body.offsetHeight,
       document.documentElement.scrollHeight,
       document.documentElement.offsetHeight
-    ) + 40;
+    );
+    // 複数のpostMessage形式を送信（各プラットフォーム対応）
     window.parent.postMessage({ iframeHeight: h }, '*');
+    window.parent.postMessage({ type: 'resize', height: h }, '*');
+    window.parent.postMessage(JSON.stringify({ type: 'embed-size', height: h }), '*');
   }
   window.addEventListener('load', notifyHeight);
+  window.addEventListener('resize', notifyHeight);
+  new MutationObserver(notifyHeight).observe(document.body, { childList: true, subtree: true, attributes: true });
   new ResizeObserver(notifyHeight).observe(document.body);
-  // 念のため遅延でも送信
-  setTimeout(notifyHeight, 500);
-  setTimeout(notifyHeight, 1500);
+  setTimeout(notifyHeight, 300);
+  setTimeout(notifyHeight, 1000);
+  setTimeout(notifyHeight, 3000);
 </script>
 
 </body>
