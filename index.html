@@ -1070,6 +1070,7 @@
   function buildPayload(trigger) {
     syncGymNames();
     return {
+      type:       'comparison',
       trigger:    trigger,
       tab:        currentTab,
       timestamp:  new Date().toISOString(),
