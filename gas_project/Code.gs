@@ -10,12 +10,31 @@ const LINE_NOTIFY_TOKEN = 'YOUR_LINE_NOTIFY_TOKEN'; // ← LINE Notifyトーク�
 ================================================================ */
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    const raw = e.postData.contents;
+    /* デバッグ: 受信データを記録 */
+    logDebug('doPost received', raw);
+    const data = JSON.parse(raw);
     if (data.type === 'comparison') return handleComparison(data);
     return handleDietSim(data);
   } catch (error) {
+    logDebug('doPost ERROR', String(error));
     return jsonResponse({ status: 'error', message: String(error) });
   }
+}
+
+/* デバッグログをシートに記録 */
+function logDebug(label, message) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('デバッグログ');
+    if (!sheet) {
+      sheet = ss.insertSheet('デバッグログ');
+      sheet.appendRow(['日時', 'ラベル', '内容']);
+      sheet.setFrozenRows(1);
+    }
+    const jst = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+    sheet.appendRow([jst, label, String(message).slice(0, 5000)]);
+  } catch (_) { /* 無視 */ }
 }
 
 /* ================================================================
