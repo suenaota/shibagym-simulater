@@ -25,9 +25,20 @@ function doPost(e) {
 function handleComparison(data) {
   const SHEET_NAME = 'ジム比較';
   const HEADERS = [
-    '記録日時(JST)', 'トリガー', 'タブ', '比較ジム名',
-    'しばジム総額', '比較ジム総額', '差額',
-    'しばジム総額(換算)', '比較ジム総額(換算)', '換算回数', '送信時刻(UTC)'
+    '記録日時(JST)', 'セッションID', 'トリガー', 'タブ',
+    '比較ジム名', '比較ジム数',
+    /* しばジム */
+    'しばジム総額', 'しばジム換算額', 'しばジム1回単価', 'しばジム回数', 'しばジムオプション',
+    /* 比較ジム */
+    '比較ジム総額', '比較ジム換算額', '比較ジム1回単価', '比較ジム回数', '比較ジムオプション',
+    '差額',
+    /* 比較ジム 各行入力値 */
+    '入力データ(JSON)',
+    /* 換算 */
+    '換算回数',
+    /* デバイス情報 */
+    'デバイス', '画面サイズ', '流入元', '滞在時間(秒)',
+    '送信時刻(UTC)'
   ];
 
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -45,22 +56,42 @@ function handleComparison(data) {
   const trigger    = data.trigger    || 'auto';
   const tab        = data.tab        || 'personal';
   const normCount  = data.normCount  || 0;
-  const gyms       = data.gyms       || [];
-  const totals     = data.totals     || [];
-  const normTotals = data.normTotals || [];
+  const sessionId  = data.sessionId  || '';
+  const timeSpent  = data.timeSpent  || 0;
+  const device     = data.device     || '';
+  const screenSize = data.screenSize || '';
+  const referrer   = data.referrer   || '';
+  const details    = data.gymDetails || [];
 
-  const ownTotal     = totals[0]     || 0;
-  const ownNormTotal = normTotals[0] || 0;
+  /* しばジム情報（details[0]） */
+  const own = details[0] || {};
+  const ownTotal     = own.total     || 0;
+  const ownNormTotal = own.normTotal || 0;
+  const ownUnit      = own.unitPrice != null ? own.unitPrice : '';
+  const ownCount     = own.count     != null ? own.count : '';
+  const ownOpts      = (own.options || []).join(', ');
 
+  /* 比較ジムごとに1行 */
   let recorded = false;
-  for (let i = 1; i < gyms.length; i++) {
-    const gymName      = gyms[i]       || '未入力';
-    const gymTotal     = totals[i]     || 0;
-    const gymNormTotal = normTotals[i] || 0;
+  for (let i = 1; i < details.length; i++) {
+    const g = details[i] || {};
+    const gymName      = g.name       || '未入力';
+    const gymTotal     = g.total      || 0;
+    const gymNormTotal = g.normTotal  || 0;
+    const gymUnit      = g.unitPrice  != null ? g.unitPrice : '';
+    const gymCount     = g.count      != null ? g.count : '';
+    const gymOpts      = (g.options || []).join(', ');
+    const rowsJson     = JSON.stringify(g.rows || {});
+
     sheet.appendRow([
-      jst, trigger, tab, gymName,
-      ownTotal, gymTotal, gymTotal - ownTotal,
-      ownNormTotal, gymNormTotal, normCount,
+      jst, sessionId, trigger, tab,
+      gymName, data.gymCount || 0,
+      ownTotal, ownNormTotal, ownUnit, ownCount, ownOpts,
+      gymTotal, gymNormTotal, gymUnit, gymCount, gymOpts,
+      gymTotal - ownTotal,
+      rowsJson,
+      normCount,
+      device, screenSize, referrer, timeSpent,
       data.timestamp || ''
     ]);
     recorded = true;
@@ -68,9 +99,14 @@ function handleComparison(data) {
 
   if (!recorded) {
     sheet.appendRow([
-      jst, trigger, tab, '（未比較）',
-      ownTotal, 0, 0,
-      ownNormTotal, 0, normCount,
+      jst, sessionId, trigger, tab,
+      '（未比較）', 0,
+      ownTotal, ownNormTotal, ownUnit, ownCount, ownOpts,
+      0, 0, '', '', '',
+      0,
+      '',
+      normCount,
+      device, screenSize, referrer, timeSpent,
       data.timestamp || ''
     ]);
   }

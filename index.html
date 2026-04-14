@@ -1067,17 +1067,78 @@
     });
   }
 
+  /* セッションID（ページ読み込みごとに一意） */
+  var _sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  var _pageLoadTime = Date.now();
+
   function buildPayload(trigger) {
     syncGymNames();
+
+    /* 各ジム × 各行の詳細データ */
+    var gymDetails = S.gyms.map(function(gym) {
+      var rows = {};
+      S.rows.forEach(function(row) {
+        var val, displayVal;
+        if (gym.isOwn) {
+          var def = OWN[row.id];
+          val = def ? def.value : '';
+          displayVal = val;
+        } else {
+          val = cell(row.id, gym.id);
+          displayVal = val;
+        }
+        rows[row.label] = {
+          type:  row.type,
+          value: val
+        };
+        /* 食事管理費の期間 */
+        if (row.id === 'r3' && !gym.isOwn) {
+          rows[row.label].period = S.cells[row.id + '-' + gym.id + '-p'] || '1';
+        }
+      });
+      return {
+        name:       gym.name,
+        isOwn:      gym.isOwn,
+        total:      calcTotal(gym.id),
+        normTotal:  getNormTotal(gym.id),
+        unitPrice:  (function() {
+          var t = calcTotal(gym.id), c = calcCount(gym.id);
+          if (t <= 0 || c <= 0 || c === Infinity) return null;
+          return Math.round(t / c);
+        })(),
+        count:      (function() {
+          var c = calcCount(gym.id);
+          return c === Infinity ? '無制限' : c;
+        })(),
+        options:    getCheckedOptions(gym.id),
+        rows:       rows
+      };
+    });
+
+    /* デバイス情報 */
+    var ua = navigator.userAgent || '';
+    var isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+    var isTablet = /iPad|Android(?!.*Mobile)/i.test(ua);
+    var deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
+
     return {
-      type:       'comparison',
-      trigger:    trigger,
-      tab:        currentTab,
-      timestamp:  new Date().toISOString(),
-      normCount:  normCount,
-      gyms:       S.gyms.map(function(g){ return g.name; }),
-      totals:     S.gyms.map(function(g){ return calcTotal(g.id); }),
-      normTotals: S.gyms.map(function(g){ return getNormTotal(g.id); })
+      type:        'comparison',
+      trigger:     trigger,
+      tab:         currentTab,
+      timestamp:   new Date().toISOString(),
+      normCount:   normCount,
+      sessionId:   _sessionId,
+      timeSpent:   Math.round((Date.now() - _pageLoadTime) / 1000),
+      gymCount:    S.gyms.filter(function(g){ return !g.isOwn; }).length,
+      rowCount:    S.rows.length,
+      gyms:        S.gyms.map(function(g){ return g.name; }),
+      totals:      S.gyms.map(function(g){ return calcTotal(g.id); }),
+      normTotals:  S.gyms.map(function(g){ return getNormTotal(g.id); }),
+      gymDetails:  gymDetails,
+      device:      deviceType,
+      screenSize:  window.innerWidth + 'x' + window.innerHeight,
+      referrer:    document.referrer || '',
+      userAgent:   ua
     };
   }
 
